@@ -1,0 +1,246 @@
+/* Java Code Analyzer - Minimalist Black & White Theme */
+
+.root {
+    background-color: linear-gradient(to bottom right, #f0f4fb 0%, #dbe6f6 100%);
+    -fx-background-color: linear-gradient(to bottom right, #f0f4fb 0%, #dbe6f6 100%);
+    -fx-text-fill: #333333;
+    font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    /* Soft shadow for depth */
+    -fx-effect: dropshadow(gaussian, #b0b8c6, 18, 0.15, 0, 3);
+}
+
+/* Button Styles */
+.button {
+    background-color: #007acc;
+    -fx-background-color: #007acc;
+    -fx-text-fill: white;
+    font-size: 14px;
+    -fx-font-size: 14px;
+    padding: 8px 16px;
+    -fx-padding: 8 16;
+    border-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    cursor: pointer;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    background-color: #005a9e;
+    -fx-background-color: #005a9e;
+}
+
+.button:pressed {
+    background-color: #004080;
+    -fx-background-color: #004080;
+}
+
+.button:disabled {
+    background-color: #cccccc;
+    -fx-background-color: #cccccc;
+    -fx-text-fill: #666666;
+}
+
+/* Label Styles */
+.label {
+    -fx-text-fill: #333333;
+    font-size: 14px;
+    -fx-font-size: 14px;
+}
+
+/* TextArea Styles */
+.text-area {
+    background-color: #f8f8f8;
+    -fx-background-color: #f8f8f8;
+    -fx-text-fill: #333333;
+    font-family: "Consolas", "Monaco", monospace;
+    -fx-font-family: "Consolas", "Monaco", monospace;
+    font-size: 12px;
+    -fx-font-size: 12px;
+    border-color: #dddddd;
+    -fx-border-color: #dddddd;
+    border-width: 1px;
+    -fx-border-width: 1px;
+}
+
+.text-area .content {
+    background-color: #f8f8f8;
+    -fx-background-color: #f8f8f8;
+}
+
+/* TableView Styles */
+.table-view {
+    background-color: white;
+    -fx-background-color: white;
+    border-color: #dddddd;
+    -fx-border-color: #dddddd;
+    border-width: 1px;
+    -fx-border-width: 1px;
+}
+
+.table-view .column-header {
+    background-color: #f5f5f5;
+    -fx-background-color: #f5f5f5;
+    border-color: #dddddd;
+    -fx-border-color: #dddddd;
+    border-width: 0 0 1px 0;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #333333;
+    font-weight: bold;
+    -fx-font-weight: bold;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: #333333;
+    padding: 8px 12px;
+    -fx-padding: 8 12;
+}
+
+.table-row-cell {
+    background-color: white;
+    -fx-background-color: white;
+    border-color: transparent transparent #f0f0f0 transparent;
+    -fx-border-color: transparent transparent #f0f0f0 transparent;
+    border-width: 0 0 1px 0;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-row-cell:odd {
+    background-color: #fafafa;
+    -fx-background-color: #fafafa;
+}
+
+.table-row-cell:selected {
+    background-color: #e3f2fd;
+    -fx-background-color: #e3f2fd;
+}
+
+/* ScrollPane Styles */
+.scroll-pane {
+    background-color: transparent;
+    -fx-background-color: transparent;
+    border-color: #dddddd;
+    -fx-border-color: #dddddd;
+    border-width: 1px;
+    -fx-border-width: 1px;
+}
+
+.scroll-pane .viewport {
+    background-color: transparent;
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical {
+    background-color: #f0f0f0;
+    -fx-background-color: #f0f0f0;
+    -fx-pref-width: 12px;
+}
+
+.scroll-bar:vertical .thumb {
+    background-color: #c0c0c0;
+    -fx-background-color: #c0c0c0;
+    -fx-background-radius: 6px;
+}
+
+.scroll-bar:vertical .thumb:hover {
+    background-color: #a0a0a0;
+    -fx-background-color: #a0a0a0;
+}
+
+.scroll-bar:horizontal {
+    background-color: #f0f0f0;
+    -fx-background-color: #f0f0f0;
+    -fx-pref-height: 12px;
+}
+
+.scroll-bar:horizontal .thumb {
+    background-color: #c0c0c0;
+    -fx-background-color: #c0c0c0;
+    -fx-background-radius: 6px;
+}
+
+.scroll-bar:horizontal .thumb:hover {
+    background-color: #a0a0a0;
+    -fx-background-color: #a0a0a0;
+}
+
+/* Alert Dialog Styles */
+.dialog-pane {
+    background-color: white;
+    -fx-background-color: white;
+    border-color: #dddddd;
+    -fx-border-color: #dddddd;
+    border-width: 1px;
+    -fx-border-width: 1px;
+}
+
+.dialog-pane .header-panel {
+    background-color: #f5f5f5;
+    -fx-background-color: #f5f5f5;
+    border-color: #dddddd;
+    -fx-border-color: #dddddd;
+    border-width: 0 0 1px 0;
+    -fx-border-width: 0 0 1 0;
+}
+
+.dialog-pane .content {
+    background-color: white;
+    -fx-background-color: white;
+    padding: 20px;
+    -fx-padding: 20;
+}
+
+.dialog-pane .button-bar {
+    background-color: #f5f5f5;
+    -fx-background-color: #f5f5f5;
+    border-color: #dddddd;
+    -fx-border-color: #dddddd;
+    border-width: 1px 0 0 0;
+    -fx-border-width: 1 0 0 0;
+    padding: 10px 20px;
+    -fx-padding: 10 20;
+}
+
+/* FileChooser Styles */
+.file-chooser {
+    background-color: white;
+    -fx-background-color: white;
+}
+
+.file-chooser .dialog-pane {
+    background-color: white;
+    -fx-background-color: white;
+}
+
+/* VBox and HBox Styles */
+.vbox, .hbox, .pane, .stack-pane, .border-pane {
+    -fx-background-color: rgba(255,255,255,0.92);
+    -fx-background-radius: 12px;
+    -fx-effect: dropshadow(gaussian, #b0b8c6, 10, 0.12, 0, 2);
+    -fx-padding: 12 18 12 18;
+}
+
+/* Specific component overrides */
+#titleLabel {
+    font-size: 24px;
+    -fx-font-size: 24px;
+    font-weight: bold;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+#statusLabel {
+    -fx-text-fill: #666666;
+    font-style: italic;
+    -fx-font-style: italic;
+}
+
+#fileNameLabel {
+    font-weight: bold;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+} 

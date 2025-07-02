@@ -1,0 +1,13 @@
+com\javareader\logic\CodeAnalyzer.class
+com\javareader\logic\HighlightUtil.class
+com\example\SampleClass.class
+com\javareader\logic\HighlightUtil$1.class
+com\javareader\ui\CodeDisplayPanel.class
+com\javareader\logic\CodeAnalyzer$AnalysisResult.class
+com\javareader\ui\FileUploadUI$ViolationTableItem.class
+com\javareader\logic\CodeAnalyzer$Violation.class
+com\javareader\ui\FileUploadUI.class
+com\javareader\Main.class
+com\javareader\logic\CodeAnalyzer$ViolationType.class
+com\javareader\logic\RuleChecker.class
+com\javareader\ui\CodeDisplayPanel$1.class
