@@ -32,7 +32,7 @@ The analyzer detects and highlights the following code violations:
 
 1. **Clone or download the project**
    ```bash
-   git clone <repository-url>
+   git clone <https://github.com/milkymoosha/JAVA_QE_READER.git>
    cd JAVA-reader
    ```
 
