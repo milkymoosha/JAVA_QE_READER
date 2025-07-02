@@ -331,7 +331,7 @@ public class CodeDisplayPanel extends VBox {
     // Returns the most severe violation type (priority order)
     private CodeAnalyzer.ViolationType getMostSevereViolation(List<CodeAnalyzer.Violation> violations) {
         if (violations == null || violations.isEmpty()) return null;
-        List<CodeAnalyzer.ViolationType> priority = List.of(
+        java.util.List<CodeAnalyzer.ViolationType> priority = java.util.Arrays.asList(
             CodeAnalyzer.ViolationType.LINE_TOO_LONG,
             CodeAnalyzer.ViolationType.IMPROPER_INDENTATION,
             CodeAnalyzer.ViolationType.REPEATED_STRING,

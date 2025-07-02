@@ -49,8 +49,6 @@ public class CodeAnalyzerTest {
     void testNamingConventionCheck() {
         String camelCaseVariable = "camelCaseVariable";
         String underscoreVariable = "variable_with_underscores";
-        String methodCall = "methodName(";
-        
         // Note: This is a simplified test - the actual implementation checks for
         // variable declarations and method calls in context
         assertFalse(ruleChecker.checkNamingConventions("String " + camelCaseVariable + " = value;"));
@@ -59,16 +57,16 @@ public class CodeAnalyzerTest {
     
     @Test
     void testRepeatedStringDetection() {
-        List<String> lines = List.of(
+        List<String> lines = java.util.Arrays.asList(
             "String first = \"Hello World\";",
             "String second = \"Different String\";",
             "String third = \"Hello World\";",
             "String fourth = \"Another String\";",
             "String fifth = \"Hello World\";"
         );
-        
-        var repeatedStrings = ruleChecker.findRepeatedStrings(lines);
-        
+
+        java.util.Map<String, java.util.List<Integer>> repeatedStrings = ruleChecker.findRepeatedStrings(lines);
+
         assertTrue(repeatedStrings.containsKey("Hello World"));
         assertEquals(3, repeatedStrings.get("Hello World").size());
         assertFalse(repeatedStrings.containsKey("Different String"));
