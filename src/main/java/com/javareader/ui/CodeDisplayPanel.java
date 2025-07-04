@@ -3,6 +3,7 @@ package com.javareader.ui;
 import com.javareader.logic.CodeAnalyzer;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
+import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.Priority;
@@ -28,6 +29,7 @@ public class CodeDisplayPanel extends VBox {
     private final VBox codeLinesBox;
     private final TextArea editTextArea;
     private final Label fileNameLabel;
+    // No local refreshButton; will use the one from FileUploadUI
     private Path currentFilePath;
     private List<String> originalLines;
     private Map<Integer, List<CodeAnalyzer.Violation>> violationsByLine;
@@ -43,8 +45,10 @@ public class CodeDisplayPanel extends VBox {
         this.codeAreaStack = new StackPane(scrollPane, editTextArea);
         this.highlightedLine = -1;
         setupCodeDisplay();
-        setupLayout();
+        // setupLayout() will be called by FileUploadUI after injecting the refresh button
     }
+
+
 
     private void setupCodeDisplay() {
         codeLinesBox.setStyle("-fx-background-color: #f8f8f8;");
@@ -58,11 +62,18 @@ public class CodeDisplayPanel extends VBox {
         scrollPane.setStyle("-fx-background-color: transparent;");
     }
 
-    private void setupLayout() {
+    /**
+     * Call this after construction to inject the refresh button from FileUploadUI.
+     */
+    public void setupLayoutWithRefreshButton(Button refreshButton) {
         setSpacing(5);
         setPadding(new Insets(10));
         fileNameLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #333;");
-        getChildren().addAll(fileNameLabel, codeAreaStack);
+        refreshButton.setStyle("");
+        javafx.scene.layout.HBox topBar = new javafx.scene.layout.HBox(8, fileNameLabel, refreshButton);
+        topBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        getChildren().clear();
+        getChildren().addAll(topBar, codeAreaStack);
         VBox.setVgrow(codeAreaStack, Priority.ALWAYS);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         VBox.setVgrow(editTextArea, Priority.ALWAYS);
@@ -78,6 +89,43 @@ public class CodeDisplayPanel extends VBox {
         // Only one should be visible at a time
         scrollPane.setVisible(true);
         editTextArea.setVisible(false);
+    }
+    /**
+     * Refreshes the file from disk and re-runs the analysis if possible.
+     */
+    private void refreshFile() {
+        if (currentFilePath == null) return;
+        // Try to re-analyze and reload the file
+        try {
+            // You may want to trigger a re-analysis here. For now, just reload the file and clear highlights.
+            java.util.List<String> lines = Files.readAllLines(currentFilePath);
+            this.originalLines = lines;
+            // If you have a way to re-run the analyzer, do it here. For now, just clear highlights and reload.
+            this.highlightedLine = -1;
+            this.violationsByLine = null;
+            codeLinesBox.getChildren().clear();
+            codeLinesBox.setStyle("-fx-background-color: #f8f8f8;");
+            for (int i = 0; i < originalLines.size(); i++) {
+                int lineNumber = i + 1;
+                String line = originalLines.get(i);
+                TextFlow textFlow = new TextFlow();
+                textFlow.setLineSpacing(0.0);
+                Text lineNum = new Text(String.format("%3d: ", lineNumber));
+                lineNum.setFont(Font.font("Consolas", FontWeight.BOLD, 12));
+                lineNum.setStyle("-fx-fill: #666;");
+                textFlow.getChildren().add(lineNum);
+                textFlow.getChildren().add(makeNormalText(line));
+                javafx.scene.layout.HBox lineBox = new javafx.scene.layout.HBox(textFlow);
+                lineBox.setMinHeight(24);
+                lineBox.setPrefWidth(Double.MAX_VALUE);
+                javafx.scene.layout.HBox.setHgrow(textFlow, javafx.scene.layout.Priority.ALWAYS);
+                lineBox.setStyle("-fx-background-radius: 8; -fx-padding: 4 8 4 8;");
+                codeLinesBox.getChildren().add(lineBox);
+            }
+            setEditMode(false);
+        } catch (IOException e) {
+            codeLinesBox.getChildren().setAll(new Label("Error reading file: " + e.getMessage()));
+        }
     }
 
     /**
@@ -358,4 +406,4 @@ public class CodeDisplayPanel extends VBox {
             default: return "transparent";
         }
     }
-} 
+}

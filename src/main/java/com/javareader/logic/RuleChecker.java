@@ -28,8 +28,6 @@ public class RuleChecker {
         if (line.trim().isEmpty()) {
             return false; // Empty lines don't have indentation issues
         }
-        
-        // Find the nearest previous non-empty line
         int prevIndex = currentLineIndex - 1;
         while (prevIndex >= 0 && allLines.get(prevIndex).trim().isEmpty()) {
             prevIndex--;
@@ -38,19 +36,10 @@ public class RuleChecker {
             return false; // No non-empty previous line, so no indentation check
         }
         String previousLine = allLines.get(prevIndex);
-        
-        // Get indentation levels (number of leading spaces)
+
         int currentIndentation = getIndentationLevel(line);
         int previousIndentation = getIndentationLevel(previousLine);
-        
-        // Calculate the difference in indentation
         int indentationDifference = currentIndentation - previousIndentation;
-        
-        // Proper indentation: 
-        // - 0 spaces (same level)
-        // - +2 spaces (one level deeper) 
-        // - Any negative difference (going back/outdenting)
-        // Any other positive difference is improper
         return indentationDifference > 2;
     }
     
@@ -69,6 +58,24 @@ public class RuleChecker {
             }
         }
         return spaces;
+    }
+
+    /**
+     * Heuristic: returns true if the line is a method call (not a constructor)
+     */
+    public static boolean isMethodCall(String line) {
+        String trimmed = line.trim();
+        // Must contain a dot before the '('
+        int parenIdx = trimmed.indexOf('(');
+        if (parenIdx == -1) return false;
+        String beforeParen = trimmed.substring(0, parenIdx);
+        // Exclude lines that look like constructor calls (start with uppercase, no dot)
+        if (!beforeParen.contains(".")) return false;
+        // Exclude new SomeClass(
+        if (beforeParen.startsWith("new ")) return false;
+        // Exclude annotations
+        if (beforeParen.startsWith("@")) return false;
+        return true;
     }
     
     /**

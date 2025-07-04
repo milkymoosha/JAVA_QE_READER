@@ -28,6 +28,7 @@ public class FileUploadUI extends VBox {
     private final Button uploadButton;
     private final Button saveButton;
     private final Button editButton;
+    private final Button refreshButton;
     private final VBox descriptionBox;
     private final Map<CodeAnalyzer.ViolationType, Integer> violationNavIndex = new HashMap<>();
     private List<CodeAnalyzer.Violation> lastViolations = null;
@@ -40,9 +41,12 @@ public class FileUploadUI extends VBox {
         this.uploadButton = createUploadButton();
         this.saveButton = createSaveButton();
         this.editButton = createEditButton();
+        this.refreshButton = createRefreshButton();
         this.descriptionBox = createDescriptionBox();
         
         setupLayout();
+        // Move the refresh button from the header to the code view area beside the filename
+        codeDisplayPanel.setupLayoutWithRefreshButton(refreshButton);
         setupStyles();
     }
     
@@ -50,11 +54,16 @@ public class FileUploadUI extends VBox {
         setSpacing(10);
         setPadding(new Insets(20));
         
-        // Header
+        // Header without refresh button (now moved to code view area)
         Label titleLabel = new Label("Java Code Analyzer");
         titleLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #333;");
-        
-        // Upload section
+        HBox headerBar = new HBox();
+        headerBar.setAlignment(Pos.CENTER_LEFT);
+        HBox spacer = new HBox();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        headerBar.getChildren().addAll(titleLabel, spacer);
+
+        // Upload section (without refresh button)
         VBox uploadSection = new VBox(10);
         uploadSection.setAlignment(Pos.CENTER);
         HBox buttonBox = new HBox(10);
@@ -65,7 +74,7 @@ public class FileUploadUI extends VBox {
             buttonBox,
             statusLabel
         );
-        
+
         // Main content area
         HBox mainContent = new HBox(20);
         mainContent.setAlignment(Pos.TOP_LEFT);
@@ -102,7 +111,7 @@ public class FileUploadUI extends VBox {
         });
         
         // Add all sections to main layout
-        getChildren().addAll(titleLabel, uploadSection, mainContent);
+        getChildren().addAll(headerBar, uploadSection, mainContent);
         VBox.setVgrow(mainContent, Priority.ALWAYS);
         
         violationTable.setOnMouseClicked(event -> {
@@ -149,6 +158,23 @@ public class FileUploadUI extends VBox {
         button.setDisable(true);
         button.setOnAction(e -> handleEditFile());
         return button;
+    }
+
+    private Button createRefreshButton() {
+        Button button = new Button("Refresh");
+        button.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 20;");
+        button.setDisable(false);
+        button.setOnAction(e -> handleRefreshFile());
+        return button;
+    }
+
+    private void handleRefreshFile() {
+        if (codeDisplayPanel.getCurrentFilePath() != null) {
+            analyzeFile(codeDisplayPanel.getCurrentFilePath());
+            statusLabel.setText("File refreshed");
+        } else {
+            statusLabel.setText("No file to refresh");
+        }
     }
     
     private void handleEditFile() {
