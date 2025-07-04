@@ -40,7 +40,50 @@ public class RuleChecker {
         int currentIndentation = getIndentationLevel(line);
         int previousIndentation = getIndentationLevel(previousLine);
         int indentationDifference = currentIndentation - previousIndentation;
-        return indentationDifference > 2;
+        // Existing rule: more than 2 spaces increase is improper
+        if (indentationDifference > 2) {
+            return true;
+        }
+        // New rule: line starts with '.' and previous line does not end with bracket, semicolon, or comma
+        String trimmed = line.trim();
+        if (trimmed.startsWith(".")) {
+            String prevTrimmed = previousLine.trim();
+            if (!(prevTrimmed.endsWith(")") || prevTrimmed.endsWith("]") || prevTrimmed.endsWith("}") || prevTrimmed.endsWith(",") || prevTrimmed.endsWith(";"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Returns 1 if >2 spaces rule is violated, 2 if dot-at-start rule is violated, 0 if no violation
+     */
+    public int checkIndentationType(String line, List<String> allLines, int currentLineIndex) {
+        if (line.trim().isEmpty()) {
+            return 0;
+        }
+        int prevIndex = currentLineIndex - 1;
+        while (prevIndex >= 0 && allLines.get(prevIndex).trim().isEmpty()) {
+            prevIndex--;
+        }
+        if (prevIndex < 0) {
+            return 0;
+        }
+        String previousLine = allLines.get(prevIndex);
+        int currentIndentation = getIndentationLevel(line);
+        int previousIndentation = getIndentationLevel(previousLine);
+        int indentationDifference = currentIndentation - previousIndentation;
+        if (indentationDifference > 2) {
+            return 1; // propagate
+        }
+        String trimmed = line.trim();
+        if (trimmed.startsWith(".")) {
+            String prevTrimmed = previousLine.trim();
+            if (!(prevTrimmed.endsWith(")") || prevTrimmed.endsWith("]") || prevTrimmed.endsWith("}") || prevTrimmed.endsWith(",") || prevTrimmed.endsWith(";"))) {
+                return 2; // dot-at-start, only mark this line
+            }
+        }
+        return 0;
     }
     
     /**

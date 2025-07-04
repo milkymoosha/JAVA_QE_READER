@@ -42,21 +42,22 @@ public class CodeAnalyzer {
             }
             
             // Check indentation (now requires all lines and current index)
-            if (ruleChecker.checkIndentation(line, lines, i)) {
-                // Mark this line and all subsequent lines with the same indentation as improper
+            int indentCheck = ruleChecker.checkIndentationType(line, lines, i);
+            if (indentCheck == 1) { // >2 spaces rule, propagate
                 int badIndent = ruleChecker.getIndentationLevel(line);
                 int j = i;
                 while (j < lines.size() && ruleChecker.getIndentationLevel(lines.get(j)) == badIndent && !lines.get(j).trim().isEmpty()) {
                     int badLineNumber = j + 1;
-                    // Only add if not already present
                     boolean alreadyAdded = violations.stream().anyMatch(v -> v.getType() == ViolationType.IMPROPER_INDENTATION && v.getLineNumber() == badLineNumber);
                     if (!alreadyAdded) {
                         violations.add(new Violation(ViolationType.IMPROPER_INDENTATION, badLineNumber, lines.get(j)));
                     }
                     j++;
                 }
-                i = j; // Skip to the next line with different indentation
+                i = j;
                 continue;
+            } else if (indentCheck == 2) { // dot-at-start rule, only mark this line
+                violations.add(new Violation(ViolationType.IMPROPER_INDENTATION, lineNumber, line));
             }
             
             // Check consecutive empty lines
@@ -67,6 +68,10 @@ public class CodeAnalyzer {
             // Check naming conventions
             if (ruleChecker.checkNamingConventions(line)) {
                 violations.add(new Violation(ViolationType.NAMING_CONVENTION, lineNumber, line));
+            }
+            // Check for lines ending with '='
+            if (line.trim().endsWith("=")) {
+                violations.add(new Violation(ViolationType.LINE_ENDS_WITH_EQUALS, lineNumber, line));
             }
             i++;
         }
@@ -95,7 +100,8 @@ public class CodeAnalyzer {
             if (ruleChecker.checkLineLength(line)) {
                 violations.add(new Violation(ViolationType.LINE_TOO_LONG, lineNumber, line));
             }
-            if (ruleChecker.checkIndentation(line, lines, i)) {
+            int indentCheck = ruleChecker.checkIndentationType(line, lines, i);
+            if (indentCheck == 1) { // >2 spaces rule, propagate
                 int badIndent = ruleChecker.getIndentationLevel(line);
                 int j = i;
                 while (j < lines.size() && ruleChecker.getIndentationLevel(lines.get(j)) == badIndent && !lines.get(j).trim().isEmpty()) {
@@ -108,12 +114,18 @@ public class CodeAnalyzer {
                 }
                 i = j;
                 continue;
+            } else if (indentCheck == 2) { // dot-at-start rule, only mark this line
+                violations.add(new Violation(ViolationType.IMPROPER_INDENTATION, lineNumber, line));
             }
             if (ruleChecker.checkConsecutiveEmptyLines(lines, i)) {
                 violations.add(new Violation(ViolationType.EMPTY_LINE, lineNumber, line));
             }
             if (ruleChecker.checkNamingConventions(line)) {
                 violations.add(new Violation(ViolationType.NAMING_CONVENTION, lineNumber, line));
+            }
+            // Check for lines ending with '='
+            if (line.trim().endsWith("=")) {
+                violations.add(new Violation(ViolationType.LINE_ENDS_WITH_EQUALS, lineNumber, line));
             }
             i++;
         }
@@ -190,7 +202,8 @@ public class CodeAnalyzer {
         IMPROPER_INDENTATION("Improper indentation"),
         REPEATED_STRING("Repeated string literal"),
         EMPTY_LINE("Empty line"),
-        NAMING_CONVENTION("Naming convention violation");
+        NAMING_CONVENTION("Naming convention violation"),
+        LINE_ENDS_WITH_EQUALS("Line ends with '='");
         
         private final String description;
         

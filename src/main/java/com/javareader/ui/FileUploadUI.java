@@ -44,8 +44,8 @@ public class FileUploadUI extends VBox {
     private TextField filePathField;
     private Button openPathButton;
     
-    private static final String READ_BUTTON_STYLE = "-fx-background-color: #1976D2; -fx-text-fill: white; -fx-font-size: 14px; -fx-pref-width: 140px; -fx-pref-height: 38px; -fx-padding: 0 20;";
-    private static final String WRITE_BUTTON_STYLE = "-fx-background-color: #FF9800; -fx-text-fill: white; -fx-font-size: 14px; -fx-pref-width: 140px; -fx-pref-height: 38px; -fx-padding: 0 20;";
+    private static final String READ_BUTTON_STYLE = "-fx-background-color: #1976D2; -fx-text-fill: white; -fx-font-size: 12px; -fx-pref-width: 100px; -fx-pref-height: 28px; -fx-padding: 0 10;";
+    private static final String WRITE_BUTTON_STYLE = "-fx-background-color: #FF9800; -fx-text-fill: white; -fx-font-size: 12px; -fx-pref-width: 100px; -fx-pref-height: 28px; -fx-padding: 0 10;";
     
     public FileUploadUI() {
         this.codeAnalyzer = new CodeAnalyzer();
@@ -92,6 +92,7 @@ public class FileUploadUI extends VBox {
 
         // --- Menu Bar (top, like a text editor) ---
         MenuBar menuBar = new MenuBar();
+        menuBar.setStyle("-fx-font-size: 12px; -fx-pref-height: 22px;");
         Menu fileMenu = new Menu("File");
         MenuItem openFileItem = new MenuItem("Open File");
         openFileItem.setOnAction(e -> handleFileUpload());
@@ -104,27 +105,78 @@ public class FileUploadUI extends VBox {
 
         // --- Toolbar (edit, compile, status) ---
         ToolBar toolBar = new ToolBar();
+        toolBar.setStyle("-fx-padding: 2 2 2 2; -fx-background-insets: 0; -fx-font-size: 12px; -fx-pref-height: 32px;");
         filePathField.setPromptText("Paste file path here...");
-        filePathField.setPrefWidth(220);
+        filePathField.setPrefWidth(120);
+        filePathField.setStyle("-fx-font-size: 12px; -fx-pref-height: 22px;");
         filePathField.setOnAction(e -> handleOpenPath());
         toolBar.getItems().addAll(uploadButton, editButton, saveButton, scrapButton, analyzeScrapButton, editScrapButton, new Separator(), filePathField, openPathButton, new Separator(), statusLabel);
 
         // --- Main content area ---
-        BorderPane mainContent = new BorderPane();
-        mainContent.setPadding(new Insets(0));
+        javafx.scene.control.SplitPane mainContent = new javafx.scene.control.SplitPane();
+        mainContent.setOrientation(javafx.geometry.Orientation.HORIZONTAL);
+        mainContent.setMinWidth(400);
+        mainContent.setMinHeight(300);
+        mainContent.setDividerPositions(0.75); // 75% code, 25% right panel
+        mainContent.setStyle("-fx-padding: 0;");
+
+        // Drag-and-drop support for Java files
+        // Attach drag-and-drop to both mainContent (SplitPane) and codeSection
+        javafx.event.EventHandler<javafx.scene.input.DragEvent> dragOverHandler = event -> {
+            if (event.getGestureSource() != mainContent && event.getDragboard().hasFiles()) {
+                boolean hasJava = event.getDragboard().getFiles().stream().anyMatch(f -> f.getName().endsWith(".java"));
+                if (hasJava) {
+                    event.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
+                }
+            }
+            event.consume();
+        };
+        javafx.event.EventHandler<javafx.scene.input.DragEvent> dragDroppedHandler = event -> {
+            javafx.scene.input.Dragboard db = event.getDragboard();
+            boolean success = false;
+            if (db.hasFiles()) {
+                File javaFile = db.getFiles().stream().filter(f -> f.getName().endsWith(".java")).findFirst().orElse(null);
+                if (javaFile != null && javaFile.isFile()) {
+                    analyzeFile(javaFile.toPath());
+                    success = true;
+                } else {
+                    showError("Please drop a valid .java file.");
+                }
+            }
+            event.setDropCompleted(success);
+            event.consume();
+        };
+        mainContent.setOnDragOver(dragOverHandler);
+        mainContent.setOnDragDropped(dragDroppedHandler);
+        codeDisplayPanel.setOnDragOver(dragOverHandler);
+        codeDisplayPanel.setOnDragDropped(dragDroppedHandler);
 
         // Code display area (center, fills most of the space)
         VBox codeSection = new VBox(0);
-        codeSection.getChildren().addAll(codeDisplayPanel);
-        VBox.setVgrow(codeDisplayPanel, Priority.ALWAYS);
         codeSection.setMinWidth(0);
         codeSection.setMaxWidth(Double.MAX_VALUE);
-        mainContent.setCenter(codeSection);
+        codeSection.setStyle("-fx-padding: 2 2 2 2;");
+        // Make code area scrollable horizontally if needed
+        ScrollPane codeScrollPane = new ScrollPane(codeDisplayPanel);
+        codeScrollPane.setFitToWidth(false); // Don't stretch to fill
+        codeScrollPane.setFitToHeight(true);
+        codeScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        codeScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        codeScrollPane.setStyle("-fx-background: white; -fx-padding: 0;");
+        codeSection.getChildren().clear();
+        codeSection.getChildren().addAll(codeScrollPane);
+        VBox.setVgrow(codeScrollPane, Priority.ALWAYS);
+        codeScrollPane.setFitToWidth(true);
 
         // Violation table and description (right side, fixed width)
-        VBox tableSection = new VBox(16); // more spacing
-        violationTable.setPrefHeight(320);
-        descriptionBox.setPrefHeight(180);
+        VBox tableSection = new VBox(8); // less spacing
+        violationTable.setPrefHeight(180);
+        violationTable.setStyle("-fx-font-size: 11px;");
+        descriptionBox.setPrefHeight(80);
+        descriptionBox.setStyle("-fx-font-size: 11px;");
+        tableSection.setMinWidth(220);
+        tableSection.setMaxWidth(Double.MAX_VALUE);
+        tableSection.setPrefWidth(Region.USE_COMPUTED_SIZE);
         tableSection.getChildren().addAll(
             new Label("Violations Summary:"),
             violationTable,
@@ -133,9 +185,12 @@ public class FileUploadUI extends VBox {
         );
         VBox.setVgrow(violationTable, Priority.ALWAYS);
         VBox.setVgrow(descriptionBox, Priority.NEVER);
-        tableSection.setMinWidth(420);
-        tableSection.setMaxWidth(520);
-        mainContent.setRight(tableSection);
+        // Add both sections to SplitPane
+        mainContent.getItems().addAll(codeSection, tableSection);
+        // Allow divider to be user-movable; set initial position
+        mainContent.setDividerPositions(0.75);
+        codeSection.setMinWidth(300);
+        tableSection.setMinWidth(220);
 
         // Add all sections to main layout
         getChildren().clear();
@@ -188,6 +243,7 @@ public class FileUploadUI extends VBox {
         return button;
     }
 
+    
     private Button createRefreshButton() {
         Button button = new Button("Refresh");
         button.setStyle(READ_BUTTON_STYLE);

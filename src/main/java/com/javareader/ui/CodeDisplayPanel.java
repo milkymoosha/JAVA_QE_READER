@@ -58,9 +58,11 @@ public class CodeDisplayPanel extends VBox {
         editTextArea.setEditable(true);
         editTextArea.setWrapText(false);
         editTextArea.setVisible(false);
-        scrollPane.setFitToWidth(true);
+        scrollPane.setFitToWidth(false); // allow horizontal scrolling
         scrollPane.setFitToHeight(true);
         scrollPane.setStyle("-fx-background-color: transparent;");
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
     }
 
     /**
@@ -122,8 +124,27 @@ public class CodeDisplayPanel extends VBox {
                 javafx.scene.layout.HBox lineBox = new javafx.scene.layout.HBox(textFlow);
                 lineBox.setMinHeight(24);
                 lineBox.setPrefWidth(Double.MAX_VALUE);
+                lineBox.setMaxWidth(Double.MAX_VALUE);
                 javafx.scene.layout.HBox.setHgrow(textFlow, javafx.scene.layout.Priority.ALWAYS);
-                lineBox.setStyle("-fx-background-radius: 8; -fx-padding: 4 8 4 8;");
+                javafx.scene.layout.HBox.setHgrow(lineBox, javafx.scene.layout.Priority.ALWAYS);
+                lineBox.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
+                StringBuilder style = new StringBuilder();
+                // 1. Violation background color
+                if (violationsByLine != null && violationsByLine.containsKey(lineNumber)) {
+                    List<CodeAnalyzer.Violation> lineViolations = violationsByLine.get(lineNumber);
+                    CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                    style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+                }
+                // 2. Highlighted line: always add blue border and light blue background if no violation
+                if (highlightedLine == lineNumber) {
+                    if (violationsByLine == null || violationsByLine.get(lineNumber) == null || violationsByLine.get(lineNumber).isEmpty()) {
+                        style.append("-fx-background-color: #E3F2FD;");
+                    }
+                    style.append("-fx-border-color: #2196F3; -fx-border-width: 3; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 4 8 4 8;");
+                } else {
+                    style.append("-fx-background-radius: 8; -fx-padding: 4 8 4 8;");
+                }
+                lineBox.setStyle(style.toString());
                 codeLinesBox.getChildren().add(lineBox);
             }
             setEditMode(false);
@@ -158,6 +179,9 @@ public class CodeDisplayPanel extends VBox {
 
                 TextFlow textFlow = new TextFlow();
                 textFlow.setLineSpacing(0.0);
+                textFlow.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                textFlow.setMaxWidth(Double.MAX_VALUE);
+                textFlow.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
 
                 // Add line number
                 Text lineNum = new Text(String.format("%3d: ", lineNumber));
@@ -171,13 +195,50 @@ public class CodeDisplayPanel extends VBox {
                 textFlow.getChildren().add(lineNum);
 
                 // Add the actual line content
-                textFlow.getChildren().add(makeNormalText(line));
+                // If improper indentation, highlight only the leading whitespace and dot
+                boolean highlightIndentOnly = false;
+                if (lineViolations != null && !lineViolations.isEmpty()) {
+                    CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                    if (mainType == CodeAnalyzer.ViolationType.IMPROPER_INDENTATION) {
+                        highlightIndentOnly = true;
+                    }
+                }
+                if (highlightIndentOnly) {
+                    String original = line != null ? line : "";
+                    int iws = 0;
+                    while (iws < original.length() && (original.charAt(iws) == ' ' || original.charAt(iws) == '\t')) iws++;
+                    String ws = original.substring(0, iws);
+                    String rest = original.substring(iws);
+                    int semiIdx = rest.indexOf(';');
+                    textFlow.getChildren().add(makeHighlightedText(ws));
+                    if (rest.startsWith(".")) {
+                        textFlow.getChildren().add(makeHighlightedText("."));
+                        rest = rest.substring(1);
+                    }
+                    if (semiIdx != -1) {
+                        String toSemi, afterSemi;
+                        if (semiIdx + 1 <= rest.length()) {
+                            toSemi = rest.substring(0, semiIdx + 1);
+                            afterSemi = rest.substring(semiIdx + 1);
+                        } else {
+                            toSemi = rest;
+                            afterSemi = "";
+                        }
+                        textFlow.getChildren().add(makeHighlightedText(toSemi));
+                        textFlow.getChildren().add(makeNormalText(afterSemi));
+                    } else {
+                        textFlow.getChildren().add(makeHighlightedText(rest));
+                    }
+                } else {
+                    textFlow.getChildren().add(makeNormalText(line));
+                }
 
                 if (!isEditMode) {
                     javafx.scene.layout.HBox lineBox = new javafx.scene.layout.HBox(textFlow);
                     lineBox.setMinHeight(24);
-                    lineBox.setPrefWidth(Double.MAX_VALUE);
-                    javafx.scene.layout.HBox.setHgrow(textFlow, javafx.scene.layout.Priority.ALWAYS);
+                    lineBox.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                    lineBox.setMaxWidth(Double.MAX_VALUE);
+                    lineBox.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
                     StringBuilder style = new StringBuilder();
                     // 1. Violation background color
                     if (lineViolations != null && !lineViolations.isEmpty()) {
@@ -227,6 +288,9 @@ public class CodeDisplayPanel extends VBox {
             List<CodeAnalyzer.Violation> lineViolations = violationsByLine.get(lineNumber);
             TextFlow textFlow = new TextFlow();
             textFlow.setLineSpacing(0.0);
+            textFlow.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            textFlow.setMaxWidth(Double.MAX_VALUE);
+            textFlow.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
             // Add line number
             Text lineNum = new Text(String.format("%3d: ", lineNumber));
             lineNum.setFont(Font.font("Consolas", FontWeight.BOLD, 12));
@@ -235,11 +299,48 @@ public class CodeDisplayPanel extends VBox {
                 lineNum.setStyle("-fx-fill: white; -fx-font-weight: bold; -fx-background-color: #2196F3; -fx-padding: 2 8 2 8; -fx-background-radius: 6;");
             }
             textFlow.getChildren().add(lineNum);
-            textFlow.getChildren().add(makeNormalText(line));
+            // If improper indentation, highlight only the leading whitespace and dot
+            boolean highlightIndentOnly = false;
+            if (lineViolations != null && !lineViolations.isEmpty()) {
+                CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                if (mainType == CodeAnalyzer.ViolationType.IMPROPER_INDENTATION) {
+                    highlightIndentOnly = true;
+                }
+            }
+            if (highlightIndentOnly) {
+                String original = line != null ? line : "";
+                int iws = 0;
+                while (iws < original.length() && (original.charAt(iws) == ' ' || original.charAt(iws) == '\t')) iws++;
+                String ws = original.substring(0, iws);
+                String rest = original.substring(iws);
+                int semiIdx = rest.indexOf(';');
+                textFlow.getChildren().add(makeHighlightedText(ws));
+                if (rest.startsWith(".")) {
+                    textFlow.getChildren().add(makeHighlightedText("."));
+                    rest = rest.substring(1);
+                }
+                if (semiIdx != -1) {
+                    String toSemi, afterSemi;
+                    if (semiIdx + 1 <= rest.length()) {
+                        toSemi = rest.substring(0, semiIdx + 1);
+                        afterSemi = rest.substring(semiIdx + 1);
+                    } else {
+                        toSemi = rest;
+                        afterSemi = "";
+                    }
+                    textFlow.getChildren().add(makeHighlightedText(toSemi));
+                    textFlow.getChildren().add(makeNormalText(afterSemi));
+                } else {
+                    textFlow.getChildren().add(makeHighlightedText(rest));
+                }
+            } else {
+                textFlow.getChildren().add(makeNormalText(line));
+            }
             javafx.scene.layout.HBox lineBox = new javafx.scene.layout.HBox(textFlow);
             lineBox.setMinHeight(24);
-            lineBox.setPrefWidth(Double.MAX_VALUE);
-            javafx.scene.layout.HBox.setHgrow(textFlow, javafx.scene.layout.Priority.ALWAYS);
+            lineBox.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            lineBox.setMaxWidth(Double.MAX_VALUE);
+            lineBox.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
             StringBuilder style = new StringBuilder();
             if (lineViolations != null && !lineViolations.isEmpty()) {
                 CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
@@ -427,6 +528,9 @@ public class CodeDisplayPanel extends VBox {
             List<CodeAnalyzer.Violation> lineViolations = violationsByLine.get(lineNumber);
             TextFlow textFlow = new TextFlow();
             textFlow.setLineSpacing(0.0);
+            textFlow.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            textFlow.setMaxWidth(Double.MAX_VALUE);
+            textFlow.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
             // Add line number
             Text lineNum = new Text(String.format("%3d: ", lineNumber));
             lineNum.setFont(Font.font("Consolas", FontWeight.BOLD, 12));
@@ -435,11 +539,48 @@ public class CodeDisplayPanel extends VBox {
                 lineNum.setStyle("-fx-fill: white; -fx-font-weight: bold; -fx-background-color: #2196F3; -fx-padding: 2 8 2 8; -fx-background-radius: 6;");
             }
             textFlow.getChildren().add(lineNum);
-            textFlow.getChildren().add(makeNormalText(line));
+            // If improper indentation, highlight only the leading whitespace and dot
+            boolean highlightIndentOnly = false;
+            if (lineViolations != null && !lineViolations.isEmpty()) {
+                CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                if (mainType == CodeAnalyzer.ViolationType.IMPROPER_INDENTATION) {
+                    highlightIndentOnly = true;
+                }
+            }
+            if (highlightIndentOnly) {
+                String original = line != null ? line : "";
+                int iws = 0;
+                while (iws < original.length() && (original.charAt(iws) == ' ' || original.charAt(iws) == '\t')) iws++;
+                String ws = original.substring(0, iws);
+                String rest = original.substring(iws);
+                int semiIdx = rest.indexOf(';');
+                textFlow.getChildren().add(makeHighlightedText(ws));
+                if (rest.startsWith(".")) {
+                    textFlow.getChildren().add(makeHighlightedText("."));
+                    rest = rest.substring(1);
+                }
+                if (semiIdx != -1) {
+                    String toSemi, afterSemi;
+                    if (semiIdx + 1 <= rest.length()) {
+                        toSemi = rest.substring(0, semiIdx + 1);
+                        afterSemi = rest.substring(semiIdx + 1);
+                    } else {
+                        toSemi = rest;
+                        afterSemi = "";
+                    }
+                    textFlow.getChildren().add(makeHighlightedText(toSemi));
+                    textFlow.getChildren().add(makeNormalText(afterSemi));
+                } else {
+                    textFlow.getChildren().add(makeHighlightedText(rest));
+                }
+            } else {
+                textFlow.getChildren().add(makeNormalText(line));
+            }
             javafx.scene.layout.HBox lineBox = new javafx.scene.layout.HBox(textFlow);
             lineBox.setMinHeight(24);
-            lineBox.setPrefWidth(Double.MAX_VALUE);
-            javafx.scene.layout.HBox.setHgrow(textFlow, javafx.scene.layout.Priority.ALWAYS);
+            lineBox.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            lineBox.setMaxWidth(Double.MAX_VALUE);
+            lineBox.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
             StringBuilder style = new StringBuilder();
             if (lineViolations != null && !lineViolations.isEmpty()) {
                 CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
@@ -532,5 +673,13 @@ public class CodeDisplayPanel extends VBox {
             case NAMING_CONVENTION: return "#00C853"; // Bold Green
             default: return "transparent";
         }
+    }
+
+    // Helper for orange highlight
+    private Text makeHighlightedText(String s) {
+        Text t = new Text(s);
+        t.setFont(Font.font("Consolas", FontWeight.NORMAL, 12));
+        t.setStyle("-fx-background-color: orange; -fx-fill: #333;");
+        return t;
     }
 }
