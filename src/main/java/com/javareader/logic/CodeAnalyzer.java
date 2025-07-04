@@ -83,6 +83,50 @@ public class CodeAnalyzer {
     }
     
     /**
+     * Analyzes Java code from a String for code violations
+     */
+    public AnalysisResult analyzeString(String code) {
+        List<String> lines = Arrays.asList(code.split("\r?\n"));
+        List<Violation> violations = new ArrayList<>();
+        int i = 0;
+        while (i < lines.size()) {
+            String line = lines.get(i);
+            int lineNumber = i + 1;
+            if (ruleChecker.checkLineLength(line)) {
+                violations.add(new Violation(ViolationType.LINE_TOO_LONG, lineNumber, line));
+            }
+            if (ruleChecker.checkIndentation(line, lines, i)) {
+                int badIndent = ruleChecker.getIndentationLevel(line);
+                int j = i;
+                while (j < lines.size() && ruleChecker.getIndentationLevel(lines.get(j)) == badIndent && !lines.get(j).trim().isEmpty()) {
+                    int badLineNumber = j + 1;
+                    boolean alreadyAdded = violations.stream().anyMatch(v -> v.getType() == ViolationType.IMPROPER_INDENTATION && v.getLineNumber() == badLineNumber);
+                    if (!alreadyAdded) {
+                        violations.add(new Violation(ViolationType.IMPROPER_INDENTATION, badLineNumber, lines.get(j)));
+                    }
+                    j++;
+                }
+                i = j;
+                continue;
+            }
+            if (ruleChecker.checkConsecutiveEmptyLines(lines, i)) {
+                violations.add(new Violation(ViolationType.EMPTY_LINE, lineNumber, line));
+            }
+            if (ruleChecker.checkNamingConventions(line)) {
+                violations.add(new Violation(ViolationType.NAMING_CONVENTION, lineNumber, line));
+            }
+            i++;
+        }
+        Map<String, List<Integer>> repeatedStrings = ruleChecker.findRepeatedStrings(lines);
+        for (Map.Entry<String, List<Integer>> entry : repeatedStrings.entrySet()) {
+            for (Integer lineNum : entry.getValue()) {
+                violations.add(new Violation(ViolationType.REPEATED_STRING, lineNum, lines.get(lineNum - 1)));
+            }
+        }
+        return new AnalysisResult(violations);
+    }
+    
+    /**
      * Gets the highlighting utility for UI display
      */
     public HighlightUtil getHighlightUtil() {

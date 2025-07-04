@@ -36,6 +36,7 @@ public class CodeDisplayPanel extends VBox {
     private boolean isEditMode = false;
     private int highlightedLine = -1;
     private final StackPane codeAreaStack;
+    private boolean isScrapMode = false;
 
     public CodeDisplayPanel() {
         this.codeLinesBox = new VBox(0);
@@ -65,12 +66,15 @@ public class CodeDisplayPanel extends VBox {
     /**
      * Call this after construction to inject the refresh button from FileUploadUI.
      */
-    public void setupLayoutWithRefreshButton(Button refreshButton) {
+    public void setupLayoutWithRefreshButton(Button refreshButton, Runnable onClose) {
         setSpacing(5);
         setPadding(new Insets(10));
         fileNameLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #333;");
         refreshButton.setStyle("");
-        javafx.scene.layout.HBox topBar = new javafx.scene.layout.HBox(8, fileNameLabel, refreshButton);
+        Button closeButton = new Button("Close");
+        closeButton.setStyle("-fx-background-color: #e53935; -fx-text-fill: white; -fx-font-size: 12px; -fx-padding: 4 12;");
+        closeButton.setOnAction(e -> { if (onClose != null) onClose.run(); });
+        javafx.scene.layout.HBox topBar = new javafx.scene.layout.HBox(8, fileNameLabel, refreshButton, closeButton);
         topBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         getChildren().clear();
         getChildren().addAll(topBar, codeAreaStack);
@@ -199,6 +203,58 @@ public class CodeDisplayPanel extends VBox {
             
         } catch (IOException e) {
             codeLinesBox.getChildren().setAll(new Label("Error reading file: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Displays code from a String with violations (for Scrap feature)
+     * After analysis, shows the code with highlights in display mode (codeLinesBox), not the TextArea.
+     */
+    public void displayScrapCodeWithViolations(CodeAnalyzer.AnalysisResult result, String code) {
+        // Switch to display mode: show codeLinesBox, hide editTextArea
+        scrollPane.setVisible(true);
+        editTextArea.setVisible(false);
+        fileNameLabel.setText("Scrap Code");
+        this.currentFilePath = null;
+        this.originalLines = Arrays.asList(code.split("\r?\n"));
+        this.violationsByLine = result.getViolations().stream()
+                .collect(Collectors.groupingBy(CodeAnalyzer.Violation::getLineNumber));
+        codeLinesBox.getChildren().clear();
+        codeLinesBox.setStyle("-fx-background-color: #f8f8f8;");
+        for (int i = 0; i < originalLines.size(); i++) {
+            int lineNumber = i + 1;
+            String line = originalLines.get(i);
+            List<CodeAnalyzer.Violation> lineViolations = violationsByLine.get(lineNumber);
+            TextFlow textFlow = new TextFlow();
+            textFlow.setLineSpacing(0.0);
+            // Add line number
+            Text lineNum = new Text(String.format("%3d: ", lineNumber));
+            lineNum.setFont(Font.font("Consolas", FontWeight.BOLD, 12));
+            lineNum.setStyle("-fx-fill: #666;");
+            if (highlightedLine == lineNumber) {
+                lineNum.setStyle("-fx-fill: white; -fx-font-weight: bold; -fx-background-color: #2196F3; -fx-padding: 2 8 2 8; -fx-background-radius: 6;");
+            }
+            textFlow.getChildren().add(lineNum);
+            textFlow.getChildren().add(makeNormalText(line));
+            javafx.scene.layout.HBox lineBox = new javafx.scene.layout.HBox(textFlow);
+            lineBox.setMinHeight(24);
+            lineBox.setPrefWidth(Double.MAX_VALUE);
+            javafx.scene.layout.HBox.setHgrow(textFlow, javafx.scene.layout.Priority.ALWAYS);
+            StringBuilder style = new StringBuilder();
+            if (lineViolations != null && !lineViolations.isEmpty()) {
+                CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+            }
+            if (highlightedLine == lineNumber) {
+                if (lineViolations == null || lineViolations.isEmpty()) {
+                    style.append("-fx-background-color: #E3F2FD;");
+                }
+                style.append("-fx-border-color: #2196F3; -fx-border-width: 3; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 4 8 4 8;");
+            } else {
+                style.append("-fx-background-radius: 8; -fx-padding: 4 8 4 8;");
+            }
+            lineBox.setStyle(style.toString());
+            codeLinesBox.getChildren().add(lineBox);
         }
     }
 
@@ -336,6 +392,77 @@ public class CodeDisplayPanel extends VBox {
         if (this.getParent() != null && this.getParent() instanceof VBox) {
             ((VBox)this.getParent()).requestLayout();
         }
+    }
+
+    /**
+     * Shows the scrap edit area (TextArea) for pasting or editing code.
+     */
+    public void showScrapEditArea(String code) {
+        fileNameLabel.setText("Scrap Code");
+        scrollPane.setVisible(false);
+        editTextArea.setVisible(true);
+        if (code != null) {
+            editTextArea.setText(code);
+        } else {
+            editTextArea.clear();
+        }
+    }
+
+    /**
+     * Shows the scrap display area (highlighted code view) after analysis.
+     */
+    public void showScrapDisplayArea(String code, CodeAnalyzer.AnalysisResult result) {
+        fileNameLabel.setText("Scrap Code");
+        scrollPane.setVisible(true);
+        editTextArea.setVisible(false);
+        this.currentFilePath = null;
+        this.originalLines = Arrays.asList(code.split("\r?\n"));
+        this.violationsByLine = result.getViolations().stream()
+                .collect(Collectors.groupingBy(CodeAnalyzer.Violation::getLineNumber));
+        codeLinesBox.getChildren().clear();
+        codeLinesBox.setStyle("-fx-background-color: #f8f8f8;");
+        for (int i = 0; i < originalLines.size(); i++) {
+            int lineNumber = i + 1;
+            String line = originalLines.get(i);
+            List<CodeAnalyzer.Violation> lineViolations = violationsByLine.get(lineNumber);
+            TextFlow textFlow = new TextFlow();
+            textFlow.setLineSpacing(0.0);
+            // Add line number
+            Text lineNum = new Text(String.format("%3d: ", lineNumber));
+            lineNum.setFont(Font.font("Consolas", FontWeight.BOLD, 12));
+            lineNum.setStyle("-fx-fill: #666;");
+            if (highlightedLine == lineNumber) {
+                lineNum.setStyle("-fx-fill: white; -fx-font-weight: bold; -fx-background-color: #2196F3; -fx-padding: 2 8 2 8; -fx-background-radius: 6;");
+            }
+            textFlow.getChildren().add(lineNum);
+            textFlow.getChildren().add(makeNormalText(line));
+            javafx.scene.layout.HBox lineBox = new javafx.scene.layout.HBox(textFlow);
+            lineBox.setMinHeight(24);
+            lineBox.setPrefWidth(Double.MAX_VALUE);
+            javafx.scene.layout.HBox.setHgrow(textFlow, javafx.scene.layout.Priority.ALWAYS);
+            StringBuilder style = new StringBuilder();
+            if (lineViolations != null && !lineViolations.isEmpty()) {
+                CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+            }
+            if (highlightedLine == lineNumber) {
+                if (lineViolations == null || lineViolations.isEmpty()) {
+                    style.append("-fx-background-color: #E3F2FD;");
+                }
+                style.append("-fx-border-color: #2196F3; -fx-border-width: 3; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 4 8 4 8;");
+            } else {
+                style.append("-fx-background-radius: 8; -fx-padding: 4 8 4 8;");
+            }
+            lineBox.setStyle(style.toString());
+            codeLinesBox.getChildren().add(lineBox);
+        }
+    }
+
+    /**
+     * Returns the code currently in the scrap TextArea
+     */
+    public String getScrapCode() {
+        return editTextArea.getText();
     }
 
     /**

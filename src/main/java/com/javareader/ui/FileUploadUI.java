@@ -11,6 +11,7 @@ import javafx.stage.FileChooser;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -29,9 +30,22 @@ public class FileUploadUI extends VBox {
     private final Button saveButton;
     private final Button editButton;
     private final Button refreshButton;
+    private final Button scrapButton;
+    private final Button analyzeScrapButton;
     private final VBox descriptionBox;
     private final Map<CodeAnalyzer.ViolationType, Integer> violationNavIndex = new HashMap<>();
     private List<CodeAnalyzer.Violation> lastViolations = null;
+    private boolean isScrapMode = false;
+    private boolean isScrapEditMode = false;
+    private String lastScrapCode = "";
+    private Button editScrapButton;
+    private Path virtualScrapPath = Paths.get("Scrap.java");
+    private String scrapContent = "";
+    private TextField filePathField;
+    private Button openPathButton;
+    
+    private static final String READ_BUTTON_STYLE = "-fx-background-color: #1976D2; -fx-text-fill: white; -fx-font-size: 14px; -fx-pref-width: 140px; -fx-pref-height: 38px; -fx-padding: 0 20;";
+    private static final String WRITE_BUTTON_STYLE = "-fx-background-color: #FF9800; -fx-text-fill: white; -fx-font-size: 14px; -fx-pref-width: 140px; -fx-pref-height: 38px; -fx-padding: 0 20;";
     
     public FileUploadUI() {
         this.codeAnalyzer = new CodeAnalyzer();
@@ -42,55 +56,75 @@ public class FileUploadUI extends VBox {
         this.saveButton = createSaveButton();
         this.editButton = createEditButton();
         this.refreshButton = createRefreshButton();
+        this.scrapButton = createScrapButton();
+        this.analyzeScrapButton = createAnalyzeScrapButton();
+        this.editScrapButton = createEditScrapButton();
+        this.filePathField = new TextField();
+        this.openPathButton = createOpenPathButton();
         this.descriptionBox = createDescriptionBox();
         
         setupLayout();
-        // Move the refresh button from the header to the code view area beside the filename
-        codeDisplayPanel.setupLayoutWithRefreshButton(refreshButton);
         setupStyles();
+        // Move the refresh button from the header to the code view area beside the filename
+        codeDisplayPanel.setupLayoutWithRefreshButton(refreshButton, () -> handleCloseAllFiles());
+
+    }
+
+    /**
+     * Handler to clear all files and reset the UI.
+     */
+    private void handleCloseAllFiles() {
+        codeDisplayPanel.clear();
+        violationTable.getItems().clear();
+        statusLabel.setText("Ready to analyze Java files");
+        saveButton.setDisable(true);
+        editButton.setDisable(true);
+        scrapContent = "";
+        scrapButton.setVisible(true);
+        analyzeScrapButton.setVisible(false);
+        editScrapButton.setVisible(false);
+        // Optionally clear any other state as needed
     }
     
     private void setupLayout() {
-        setSpacing(10);
-        setPadding(new Insets(20));
-        
-        // Header without refresh button (now moved to code view area)
-        Label titleLabel = new Label("Java Code Analyzer");
-        titleLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #333;");
-        HBox headerBar = new HBox();
-        headerBar.setAlignment(Pos.CENTER_LEFT);
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        headerBar.getChildren().addAll(titleLabel, spacer);
+        setSpacing(0);
+        setPadding(new Insets(0));
 
-        // Upload section (without refresh button)
-        VBox uploadSection = new VBox(10);
-        uploadSection.setAlignment(Pos.CENTER);
-        HBox buttonBox = new HBox(10);
-        buttonBox.setAlignment(Pos.CENTER);
-        buttonBox.getChildren().addAll(uploadButton, editButton, saveButton);
-        uploadSection.getChildren().addAll(
-            new Label("Upload a .java file to analyze:"),
-            buttonBox,
-            statusLabel
-        );
+        // --- Menu Bar (top, like a text editor) ---
+        MenuBar menuBar = new MenuBar();
+        Menu fileMenu = new Menu("File");
+        MenuItem openFileItem = new MenuItem("Open File");
+        openFileItem.setOnAction(e -> handleFileUpload());
+        MenuItem closeFileItem = new MenuItem("Close File");
+        closeFileItem.setOnAction(e -> handleCloseAllFiles());
+        MenuItem newFileItem = new MenuItem("New File");
+        newFileItem.setOnAction(e -> {/* Optionally implement new file logic */});
+        fileMenu.getItems().addAll(openFileItem, closeFileItem, newFileItem);
+        menuBar.getMenus().add(fileMenu);
 
-        // Main content area
-        HBox mainContent = new HBox(20);
-        mainContent.setAlignment(Pos.TOP_LEFT);
-        
-        // Code display panel (left side, 70%)
-        VBox codeSection = new VBox(10);
-        codeSection.getChildren().addAll(
-            new Label("Code View:"),
-            codeDisplayPanel
-        );
+        // --- Toolbar (edit, compile, status) ---
+        ToolBar toolBar = new ToolBar();
+        filePathField.setPromptText("Paste file path here...");
+        filePathField.setPrefWidth(220);
+        filePathField.setOnAction(e -> handleOpenPath());
+        toolBar.getItems().addAll(uploadButton, editButton, saveButton, scrapButton, analyzeScrapButton, editScrapButton, new Separator(), filePathField, openPathButton, new Separator(), statusLabel);
+
+        // --- Main content area ---
+        BorderPane mainContent = new BorderPane();
+        mainContent.setPadding(new Insets(0));
+
+        // Code display area (center, fills most of the space)
+        VBox codeSection = new VBox(0);
+        codeSection.getChildren().addAll(codeDisplayPanel);
         VBox.setVgrow(codeDisplayPanel, Priority.ALWAYS);
         codeSection.setMinWidth(0);
         codeSection.setMaxWidth(Double.MAX_VALUE);
-        
-        // Violation table and description (right side, 30%)
-        VBox tableSection = new VBox(10);
+        mainContent.setCenter(codeSection);
+
+        // Violation table and description (right side, fixed width)
+        VBox tableSection = new VBox(16); // more spacing
+        violationTable.setPrefHeight(320);
+        descriptionBox.setPrefHeight(180);
         tableSection.getChildren().addAll(
             new Label("Violations Summary:"),
             violationTable,
@@ -99,21 +133,15 @@ public class FileUploadUI extends VBox {
         );
         VBox.setVgrow(violationTable, Priority.ALWAYS);
         VBox.setVgrow(descriptionBox, Priority.NEVER);
-        tableSection.setMinWidth(0);
-        tableSection.setMaxWidth(Double.MAX_VALUE);
-        
-        mainContent.getChildren().addAll(codeSection, tableSection);
-        HBox.setHgrow(codeSection, Priority.ALWAYS);
-        HBox.setHgrow(tableSection, Priority.ALWAYS);
-        mainContent.widthProperty().addListener((obs, oldVal, newVal) -> {
-            codeSection.setPrefWidth(newVal.doubleValue() * 0.7);
-            tableSection.setPrefWidth(newVal.doubleValue() * 0.3);
-        });
-        
+        tableSection.setMinWidth(420);
+        tableSection.setMaxWidth(520);
+        mainContent.setRight(tableSection);
+
         // Add all sections to main layout
-        getChildren().addAll(headerBar, uploadSection, mainContent);
+        getChildren().clear();
+        getChildren().addAll(menuBar, toolBar, mainContent);
         VBox.setVgrow(mainContent, Priority.ALWAYS);
-        
+
         violationTable.setOnMouseClicked(event -> {
             ViolationTableItem selected = violationTable.getSelectionModel().getSelectedItem();
             if (selected != null && lastViolations != null) {
@@ -138,15 +166,15 @@ public class FileUploadUI extends VBox {
     }
     
     private Button createUploadButton() {
-        Button button = new Button("Choose Java File");
-        button.setStyle("-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 20;");
+        Button button = new Button("Choose File");
+        button.setStyle(READ_BUTTON_STYLE);
         button.setOnAction(e -> handleFileUpload());
         return button;
     }
     
     private Button createSaveButton() {
         Button button = new Button("Compile File");
-        button.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 20;");
+        button.setStyle(WRITE_BUTTON_STYLE);
         button.setDisable(true);
         button.setOnAction(e -> handleSaveFile());
         return button;
@@ -154,7 +182,7 @@ public class FileUploadUI extends VBox {
     
     private Button createEditButton() {
         Button button = new Button("Edit File");
-        button.setStyle("-fx-background-color: #FF9800; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 20;");
+        button.setStyle(WRITE_BUTTON_STYLE);
         button.setDisable(true);
         button.setOnAction(e -> handleEditFile());
         return button;
@@ -162,12 +190,99 @@ public class FileUploadUI extends VBox {
 
     private Button createRefreshButton() {
         Button button = new Button("Refresh");
-        button.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 20;");
+        button.setStyle(READ_BUTTON_STYLE);
         button.setDisable(false);
         button.setOnAction(e -> handleRefreshFile());
         return button;
     }
 
+    private Button createScrapButton() {
+        Button button = new Button("Scrap");
+        button.setStyle(READ_BUTTON_STYLE);
+        button.setOnAction(e -> openScrapFile());
+        return button;
+    }
+    private void openScrapFile() {
+        scrapContent = "";
+        codeDisplayPanel.showScrapEditArea(scrapContent);
+        statusLabel.setText("Scrap mode: Paste or type code and click Analyze");
+        violationTable.getItems().clear();
+        scrapButton.setVisible(false);
+        analyzeScrapButton.setVisible(true);
+        editScrapButton.setVisible(false);
+    }
+
+    private Button createAnalyzeScrapButton() {
+        Button button = new Button("Analyze");
+        button.setStyle(WRITE_BUTTON_STYLE);
+        button.setOnAction(e -> analyzeScrapCode());
+        button.setVisible(false);
+        return button;
+    }
+    private Button createEditScrapButton() {
+        Button button = new Button("Edit");
+        button.setStyle(WRITE_BUTTON_STYLE);
+        button.setOnAction(e -> enterScrapEditMode());
+        button.setVisible(false);
+        return button;
+    }
+    private void enterScrapEditMode() {
+        isScrapEditMode = true;
+        scrapButton.setVisible(false);
+        analyzeScrapButton.setVisible(true);
+        editScrapButton.setVisible(false);
+        codeDisplayPanel.showScrapEditArea(lastScrapCode);
+        statusLabel.setText("Scrap mode: Paste or type code and click Analyze");
+        violationTable.getItems().clear();
+    }
+    private void analyzeScrapCode() {
+        String code = codeDisplayPanel.getScrapCode();
+        if (code == null || code.trim().isEmpty()) {
+            showError("Please enter some code to analyze.");
+            return;
+        }
+        scrapContent = code;
+        statusLabel.setText("Analyzing scrap code...");
+        uploadButton.setDisable(true);
+        saveButton.setDisable(true);
+        editButton.setDisable(true);
+        new Thread(() -> {
+            try {
+                CodeAnalyzer.AnalysisResult result = codeAnalyzer.analyzeString(code);
+                Platform.runLater(() -> {
+                    codeDisplayPanel.showScrapDisplayArea(code, result);
+                    updateViolationTable(result);
+                    statusLabel.setText("Analysis complete: Scrap code");
+                    uploadButton.setDisable(false);
+                    editButton.setDisable(false);
+                    scrapButton.setVisible(false);
+                    analyzeScrapButton.setVisible(false);
+                    editScrapButton.setVisible(true);
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    showError("Error analyzing code: " + e.getMessage());
+                    statusLabel.setText("Error analyzing code");
+                    uploadButton.setDisable(false);
+                    saveButton.setDisable(true);
+                    editButton.setDisable(true);
+                });
+            }
+        }).start();
+    }
+
+    // Helper to update the violation table (extracted from displayResults)
+    private void updateViolationTable(CodeAnalyzer.AnalysisResult result) {
+        violationTable.getItems().clear();
+        Map<CodeAnalyzer.ViolationType, Integer> counts = result.getViolationCounts();
+        lastViolations = result.getViolations();
+        violationNavIndex.clear();
+        for (CodeAnalyzer.ViolationType type : CodeAnalyzer.ViolationType.values()) {
+            int count = counts.getOrDefault(type, 0);
+            violationTable.getItems().add(new ViolationTableItem(type, count));
+        }
+    }
+    
     private void handleRefreshFile() {
         if (codeDisplayPanel.getCurrentFilePath() != null) {
             analyzeFile(codeDisplayPanel.getCurrentFilePath());
@@ -272,16 +387,7 @@ public class FileUploadUI extends VBox {
         codeDisplayPanel.clear();
         
         // Update violation table - show ALL violation types with counts
-        violationTable.getItems().clear();
-        Map<CodeAnalyzer.ViolationType, Integer> counts = result.getViolationCounts();
-        lastViolations = result.getViolations();
-        violationNavIndex.clear();
-        
-        // Always show all violation types, even with 0 count
-        for (CodeAnalyzer.ViolationType type : CodeAnalyzer.ViolationType.values()) {
-            int count = counts.getOrDefault(type, 0);
-            violationTable.getItems().add(new ViolationTableItem(type, count));
-        }
+        updateViolationTable(result);
         
         // Update code display
         codeDisplayPanel.displayCodeWithViolations(result, filePath);
@@ -304,6 +410,30 @@ public class FileUploadUI extends VBox {
             box.getChildren().add(label);
         }
         return box;
+    }
+    
+    private Button createOpenPathButton() {
+        Button button = new Button("Open");
+        button.setStyle(READ_BUTTON_STYLE);
+        button.setOnAction(e -> handleOpenPath());
+        return button;
+    }
+    private void handleOpenPath() {
+        String path = filePathField.getText();
+        if (path == null || path.trim().isEmpty()) {
+            showError("Please enter a file path.");
+            return;
+        }
+        path = path.trim();
+        if ((path.startsWith("\"") && path.endsWith("\"")) || (path.startsWith("'") && path.endsWith("'"))) {
+            path = path.substring(1, path.length() - 1);
+        }
+        File file = new File(path);
+        if (!file.exists() || !file.isFile() || !file.getName().endsWith(".java")) {
+            showError("File does not exist or is not a .java file.");
+            return;
+        }
+        analyzeFile(file.toPath());
     }
     
     /**
