@@ -69,9 +69,9 @@ public class CodeAnalyzer {
             if (ruleChecker.checkNamingConventions(line)) {
                 violations.add(new Violation(ViolationType.NAMING_CONVENTION, lineNumber, line));
             }
-            // Check for lines ending with '='
+            // Check for lines ending with '=' (now part of improper indentation)
             if (line.trim().endsWith("=")) {
-                violations.add(new Violation(ViolationType.LINE_ENDS_WITH_EQUALS, lineNumber, line));
+                violations.add(new Violation(ViolationType.IMPROPER_INDENTATION, lineNumber, line));
             }
             i++;
         }
@@ -123,9 +123,9 @@ public class CodeAnalyzer {
             if (ruleChecker.checkNamingConventions(line)) {
                 violations.add(new Violation(ViolationType.NAMING_CONVENTION, lineNumber, line));
             }
-            // Check for lines ending with '='
+            // Check for lines ending with '=' (now part of improper indentation)
             if (line.trim().endsWith("=")) {
-                violations.add(new Violation(ViolationType.LINE_ENDS_WITH_EQUALS, lineNumber, line));
+                violations.add(new Violation(ViolationType.IMPROPER_INDENTATION, lineNumber, line));
             }
             i++;
         }
@@ -202,8 +202,7 @@ public class CodeAnalyzer {
         IMPROPER_INDENTATION("Improper indentation"),
         REPEATED_STRING("Repeated string literal"),
         EMPTY_LINE("Empty line"),
-        NAMING_CONVENTION("Naming convention violation"),
-        LINE_ENDS_WITH_EQUALS("Line ends with '='");
+        NAMING_CONVENTION("Naming convention violation");
         
         private final String description;
         

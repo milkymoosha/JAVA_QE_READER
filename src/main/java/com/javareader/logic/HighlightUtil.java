@@ -14,7 +14,6 @@ public class HighlightUtil {
     public static final Color REPEATED_STRING_COLOR = Color.BLUE;
     public static final Color EMPTY_LINE_COLOR = Color.PURPLE;
     public static final Color NAMING_CONVENTION_COLOR = Color.GREEN;
-    public static final Color ENDS_WITH_EQUALS_COLOR = Color.MAGENTA;
     
     /**
      * Gets the color for a specific violation type
@@ -31,8 +30,6 @@ public class HighlightUtil {
                 return EMPTY_LINE_COLOR;
             case NAMING_CONVENTION:
                 return NAMING_CONVENTION_COLOR;
-            case LINE_ENDS_WITH_EQUALS:
-                return ENDS_WITH_EQUALS_COLOR;
             default:
                 return Color.BLACK;
         }
@@ -67,15 +64,13 @@ public class HighlightUtil {
             case LINE_TOO_LONG:
                 return "Red: Line exceeds 120 characters";
             case IMPROPER_INDENTATION:
-                return "Orange: Improper indentation (more than 2 spaces)";
+                return "Orange: Improper indentation (more than 2 spaces) or line ends with '='";
             case REPEATED_STRING:
                 return "Blue: Repeated string literal (consider using a constant)";
             case EMPTY_LINE:
                 return "Yellow: Empty line detected";
             case NAMING_CONVENTION:
                 return "Green: Naming convention violation (should be camelCase)";
-            case LINE_ENDS_WITH_EQUALS:
-                return "Magenta: Line ends with '=' (possible incomplete assignment)";
             default:
                 return "Unknown violation";
         }
@@ -89,15 +84,13 @@ public class HighlightUtil {
             case LINE_TOO_LONG:
                 return "Line too long";
             case IMPROPER_INDENTATION:
-                return "Indentation issue";
+                return "Indentation/ends with '='";
             case REPEATED_STRING:
                 return "Repeated string";
             case EMPTY_LINE:
                 return "Empty line";
             case NAMING_CONVENTION:
                 return "Naming convention";
-            case LINE_ENDS_WITH_EQUALS:
-                return "Ends with '='";
             default:
                 return "Unknown violation";
         }
