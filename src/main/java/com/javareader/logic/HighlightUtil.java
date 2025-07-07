@@ -14,6 +14,7 @@ public class HighlightUtil {
     public static final Color REPEATED_STRING_COLOR = Color.BLUE;
     public static final Color EMPTY_LINE_COLOR = Color.PURPLE;
     public static final Color NAMING_CONVENTION_COLOR = Color.GREEN;
+    public static final Color PREMATURE_LINE_BREAK_COLOR = Color.CYAN;
     
     /**
      * Gets the color for a specific violation type
@@ -30,6 +31,8 @@ public class HighlightUtil {
                 return EMPTY_LINE_COLOR;
             case NAMING_CONVENTION:
                 return NAMING_CONVENTION_COLOR;
+            case PREMATURE_LINE_BREAK:
+                return PREMATURE_LINE_BREAK_COLOR;
             default:
                 return Color.BLACK;
         }
@@ -71,6 +74,8 @@ public class HighlightUtil {
                 return "Yellow: Empty line detected";
             case NAMING_CONVENTION:
                 return "Green: Naming convention violation (should be camelCase)";
+            case PREMATURE_LINE_BREAK:
+                return "Cyan: Premature line break (can be merged safely)";
             default:
                 return "Unknown violation";
         }
@@ -91,6 +96,8 @@ public class HighlightUtil {
                 return "Empty line";
             case NAMING_CONVENTION:
                 return "Naming convention";
+            case PREMATURE_LINE_BREAK:
+                return "Premature break";
             default:
                 return "Unknown violation";
         }

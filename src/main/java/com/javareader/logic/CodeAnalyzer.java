@@ -73,6 +73,11 @@ public class CodeAnalyzer {
             if (line.trim().endsWith("=")) {
                 violations.add(new Violation(ViolationType.IMPROPER_INDENTATION, lineNumber, line));
             }
+            // Check for premature line break
+            String prematureMsg = ruleChecker.checkPrematureLineBreak(lines, i);
+            if (prematureMsg != null) {
+                violations.add(new Violation(ViolationType.PREMATURE_LINE_BREAK, lineNumber, prematureMsg));
+            }
             i++;
         }
         
@@ -126,6 +131,11 @@ public class CodeAnalyzer {
             // Check for lines ending with '=' (now part of improper indentation)
             if (line.trim().endsWith("=")) {
                 violations.add(new Violation(ViolationType.IMPROPER_INDENTATION, lineNumber, line));
+            }
+            // Check for premature line break
+            String prematureMsg = ruleChecker.checkPrematureLineBreak(lines, i);
+            if (prematureMsg != null) {
+                violations.add(new Violation(ViolationType.PREMATURE_LINE_BREAK, lineNumber, prematureMsg));
             }
             i++;
         }
@@ -202,7 +212,8 @@ public class CodeAnalyzer {
         IMPROPER_INDENTATION("Improper indentation"),
         REPEATED_STRING("Repeated string literal"),
         EMPTY_LINE("Empty line"),
-        NAMING_CONVENTION("Naming convention violation");
+        NAMING_CONVENTION("Naming convention violation"),
+        PREMATURE_LINE_BREAK("Premature line break (can be merged safely)");
         
         private final String description;
         

@@ -266,4 +266,42 @@ public class RuleChecker {
         }
         return allImproper;
     }
+
+    /**
+     * Checks for premature line breaks that could be safely merged with the next line.
+     * Returns a message if a premature break is detected, or null otherwise.
+     */
+    public String checkPrematureLineBreak(List<String> lines, int i) {
+        String line = lines.get(i).replaceAll("\\s+$", "");
+        if (line.trim().isEmpty() || line.length() >= MAX_LINE_LENGTH) return null;
+        // Skip if ends with a standalone semicolon (not );, ), or };)
+        String trimmed = line.trim();
+        boolean endsWithStandaloneSemicolon = trimmed.endsWith(";") &&
+            !(trimmed.endsWith(");") || trimmed.endsWith("),") || trimmed.endsWith("};"));
+        if (endsWithStandaloneSemicolon) return null;
+        if (trimmed.endsWith("{") || trimmed.endsWith("}")) return null;
+        if (i + 1 >= lines.size()) return null;
+        String nextLine = lines.get(i + 1).trim();
+        // Check for continuation
+        boolean isContinuation = nextLine.startsWith(".") ||
+            nextLine.matches("^[+*/&|,)-]") ||
+            nextLine.matches("^[a-zA-Z_][a-zA-Z0-9_]*\\s*\\(") ||
+            nextLine.startsWith(",") ||
+            nextLine.startsWith(")") ||
+            nextLine.startsWith("]");
+        if (!isContinuation) return null;
+        // Try merging
+        String merged = line + " " + nextLine;
+        if (merged.length() > MAX_LINE_LENGTH) return null;
+        // Avoid splitting identifiers, string literals, or chained calls
+        if (line.endsWith(".")) return null;
+        if (nextLine.matches("^[A-Z_]+$")) return null;
+        // Avoid breaking up enums, method names, or object references
+        if (line.matches(".*\\.\\s*$") && nextLine.matches("^[A-Z_]+$")) return null;
+        // Avoid breaking string literals
+        if (line.chars().filter(ch -> ch == '"').count() % 2 != 0) return null;
+        // Avoid breaking chained method calls
+        if (nextLine.startsWith("then") || nextLine.startsWith("catch") || nextLine.startsWith("finally")) return null;
+        return "Under 120 chars, safe to merge next line's argument (" + nextLine + ") without breaking code meaning";
+    }
 } 
