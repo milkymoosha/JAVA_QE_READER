@@ -194,7 +194,7 @@ public class FileUploadUI extends VBox {
 
         // Add all sections to main layout
         getChildren().clear();
-        getChildren().addAll(menuBar, toolBar, mainContent);
+        getChildren().addAll(menuBar, toolBar, mainContent); 
         VBox.setVgrow(mainContent, Priority.ALWAYS);
 
         violationTable.setOnMouseClicked(event -> {
@@ -461,9 +461,37 @@ public class FileUploadUI extends VBox {
         VBox box = new VBox(5);
         box.setPadding(new Insets(5, 0, 0, 0));
         for (CodeAnalyzer.ViolationType type : CodeAnalyzer.ViolationType.values()) {
-            Label label = new Label(codeAnalyzer.getHighlightUtil().getViolationDescription(type));
-            label.setWrapText(true);
-            box.getChildren().add(label);
+            if (type == CodeAnalyzer.ViolationType.LINE_TOO_LONG) {
+                HBox hBox = new HBox(5);
+                Label label = new Label("Red: Line exceeds ");
+                TextField maxLenField = new TextField(String.valueOf(codeAnalyzer.getRuleChecker().getMaxLineLength()));
+                maxLenField.setPrefWidth(50);
+                maxLenField.setStyle("-fx-border-color: #1976D2; -fx-background-color: #E3F2FD; -fx-font-weight: bold;");
+                Label chars = new Label(" characters");
+                maxLenField.setOnAction(e -> {
+                    try {
+                        int val = Integer.parseInt(maxLenField.getText().trim());
+                        codeAnalyzer.getRuleChecker().setMaxLineLength(val);
+                        if (codeDisplayPanel.getCurrentFilePath() != null) {
+                            analyzeFile(codeDisplayPanel.getCurrentFilePath());
+                        } else if (!codeDisplayPanel.getScrapCode().trim().isEmpty()) {
+                            analyzeScrapCode();
+                        }
+                    } catch (NumberFormatException ex) {
+                        maxLenField.setText(String.valueOf(codeAnalyzer.getRuleChecker().getMaxLineLength()));
+                    }
+                });
+                hBox.getChildren().addAll(label, maxLenField, chars);
+                box.getChildren().add(hBox);
+            } else if (type == CodeAnalyzer.ViolationType.IMPROPER_INDENTATION) {
+                Label label = new Label("Orange: Improper indentation (more than 2 spaces) or line ends with '='");
+                label.setWrapText(true);
+                box.getChildren().add(label);
+            } else {
+                Label label = new Label(codeAnalyzer.getHighlightUtil().getViolationDescription(type));
+                label.setWrapText(true);
+                box.getChildren().add(label);
+            }
         }
         return box;
     }

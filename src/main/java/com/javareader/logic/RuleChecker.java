@@ -8,16 +8,29 @@ import java.util.regex.Pattern;
  */
 public class RuleChecker {
     
-    private static final int MAX_LINE_LENGTH = 120;
-    private static final int MAX_INDENTATION_SPACES = 2;
+    private int maxLineLength = 120;
+    private int maxIndentationSpaces = 2;
     private static final Pattern CAMEL_CASE_PATTERN = Pattern.compile("^[a-z][a-zA-Z0-9]*$");
     private static final Pattern STRING_LITERAL_PATTERN = Pattern.compile("\"([^\"]*)\"");
+    
+    public int getMaxLineLength() {
+        return maxLineLength;
+    }
+    public void setMaxLineLength(int maxLineLength) {
+        this.maxLineLength = maxLineLength;
+    }
+    public int getMaxIndentationSpaces() {
+        return maxIndentationSpaces;
+    }
+    public void setMaxIndentationSpaces(int maxIndentationSpaces) {
+        this.maxIndentationSpaces = maxIndentationSpaces;
+    }
     
     /**
      * Checks if a line exceeds the maximum allowed length
      */
     public boolean checkLineLength(String line) {
-        return line.length() > MAX_LINE_LENGTH;
+        return line.length() > maxLineLength;
     }
     
     /**
@@ -40,8 +53,8 @@ public class RuleChecker {
         int currentIndentation = getIndentationLevel(line);
         int previousIndentation = getIndentationLevel(previousLine);
         int indentationDifference = currentIndentation - previousIndentation;
-        // Existing rule: more than 2 spaces increase is improper
-        if (indentationDifference > 2) {
+        // Existing rule: more than maxIndentationSpaces increase is improper
+        if (indentationDifference > maxIndentationSpaces) {
             return true;
         }
         // New rule: line starts with '.' and previous line does not end with bracket, semicolon, or comma
@@ -56,7 +69,7 @@ public class RuleChecker {
     }
     
     /**
-     * Returns 1 if >2 spaces rule is violated, 2 if dot-at-start rule is violated, 0 if no violation
+     * Returns 1 if >maxIndentationSpaces increase is violated, 2 if dot-at-start rule is violated, 0 if no violation
      */
     public int checkIndentationType(String line, List<String> allLines, int currentLineIndex) {
         if (line.trim().isEmpty()) {
@@ -73,7 +86,7 @@ public class RuleChecker {
         int currentIndentation = getIndentationLevel(line);
         int previousIndentation = getIndentationLevel(previousLine);
         int indentationDifference = currentIndentation - previousIndentation;
-        if (indentationDifference > 2) {
+        if (indentationDifference > maxIndentationSpaces) {
             return 1; // propagate
         }
         String trimmed = line.trim();
@@ -268,40 +281,66 @@ public class RuleChecker {
     }
 
     /**
-     * Checks for premature line breaks that could be safely merged with the next line.
-     * Returns a message if a premature break is detected, or null otherwise.
+     * Checks for premature line breaks that could be safely merged with the next logical unit from the next line.
+     * Returns the logical unit if a premature break is detected, or null otherwise.
      */
     public String checkPrematureLineBreak(List<String> lines, int i) {
         String line = lines.get(i).replaceAll("\\s+$", "");
-        if (line.trim().isEmpty() || line.length() >= MAX_LINE_LENGTH) return null;
-        // Skip if ends with a standalone semicolon (not );, ), or };)
         String trimmed = line.trim();
-        boolean endsWithStandaloneSemicolon = trimmed.endsWith(";") &&
-            !(trimmed.endsWith(");") || trimmed.endsWith("),") || trimmed.endsWith("};"));
-        if (endsWithStandaloneSemicolon) return null;
-        if (trimmed.endsWith("{") || trimmed.endsWith("}")) return null;
+        // Ignore comments and annotation lines
+        if (trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*") || trimmed.startsWith("@")) {
+            return null;
+        }
+        if (trimmed.isEmpty() || line.length() >= maxLineLength) return null;
+        // Ignore if line ends with a code boundary character
+        if (!trimmed.isEmpty()) {
+            char lastChar = trimmed.charAt(trimmed.length() - 1);
+            // Common code boundary characters
+            if (lastChar == ';' || lastChar == ',' || lastChar == '{' || lastChar == '}' ||
+                lastChar == '(' || lastChar == ')' || lastChar == '[' || lastChar == ']') {
+                return null;
+            }
+        }
         if (i + 1 >= lines.size()) return null;
-        String nextLine = lines.get(i + 1).trim();
-        // Check for continuation
-        boolean isContinuation = nextLine.startsWith(".") ||
-            nextLine.matches("^[+*/&|,)-]") ||
-            nextLine.matches("^[a-zA-Z_][a-zA-Z0-9_]*\\s*\\(") ||
-            nextLine.startsWith(",") ||
-            nextLine.startsWith(")") ||
-            nextLine.startsWith("]");
-        if (!isContinuation) return null;
-        // Try merging
-        String merged = line + " " + nextLine;
-        if (merged.length() > MAX_LINE_LENGTH) return null;
-        // Avoid splitting identifiers, string literals, or chained calls
-        if (line.endsWith(".")) return null;
-        if (nextLine.matches("^[A-Z_]+$")) return null;
-        // Avoid breaking up enums, method names, or object references
-        if (line.matches(".*\\.\\s*$") && nextLine.matches("^[A-Z_]+$")) return null;
-        // Avoid breaking string literals
-        if (line.chars().filter(ch -> ch == '"').count() % 2 != 0) return null;
-        // Avoid breaking chained method calls
-        if (nextLine.startsWith("then") || nextLine.startsWith("catch") || nextLine.startsWith("finally")) return null;
-        return "Under 120 chars, safe to merge next line's argument (" + nextLine + ") without breaking code meaning";
+        String nextLine = lines.get(i + 1);
+        String nextTrimmed = nextLine.trim();
+        if (nextTrimmed.isEmpty()) return null;
+
+        // Extract logical unit from next line (e.g., starts with dot, or up to next whitespace, or up to ;, ), or ,)
+        int logicalUnitEnd = 0;
+        if (nextTrimmed.startsWith(".")) {
+            // For chained calls, extract up to next whitespace, semicolon, or comma
+            int end = nextTrimmed.length();
+            for (int j = 1; j < nextTrimmed.length(); j++) {
+                char c = nextTrimmed.charAt(j);
+                if (Character.isWhitespace(c) || c == ';' || c == ',' || c == ')') {
+                    end = j;
+                    break;
+                }
+            }
+            logicalUnitEnd = end;
+        } else if (nextTrimmed.startsWith(",") || nextTrimmed.startsWith(")") || nextTrimmed.startsWith("]")) {
+            logicalUnitEnd = 1;
+        } else {
+            // For other cases, take up to first whitespace or semicolon/comma/paren
+            int end = nextTrimmed.length();
+            for (int j = 0; j < nextTrimmed.length(); j++) {
+                char c = nextTrimmed.charAt(j);
+                if (Character.isWhitespace(c) || c == ';' || c == ',' || c == ')') {
+                    end = j;
+                    break;
+                }
+            }
+            logicalUnitEnd = end;
+        }
+        if (logicalUnitEnd == 0) return null;
+        String logicalUnit = nextTrimmed.substring(0, logicalUnitEnd);
+        // If the logical unit is empty, skip
+        if (logicalUnit.isEmpty()) return null;
+        // Check if the whole logical unit can fit in the remaining space
+        int remaining = maxLineLength - line.length();
+        if (remaining < logicalUnit.length() + 1) return null; // +1 for space
+        // Only flag if the whole logical unit fits
+        return logicalUnit;
     }
 } 

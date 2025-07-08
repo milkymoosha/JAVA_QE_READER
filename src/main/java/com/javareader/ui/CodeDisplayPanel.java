@@ -132,8 +132,12 @@ public class CodeDisplayPanel extends VBox {
                 // 1. Violation background color
                 if (violationsByLine != null && violationsByLine.containsKey(lineNumber)) {
                     List<CodeAnalyzer.Violation> lineViolations = violationsByLine.get(lineNumber);
-                    CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
-                    style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+                    if (lineViolations.size() > 1) {
+                        style.append("-fx-background-color: #B388FF;"); // Purple for multiple violations
+                    } else {
+                        CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                        style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+                    }
                 }
                 // 2. Highlighted line: always add blue border and light blue background if no violation
                 if (highlightedLine == lineNumber) {
@@ -343,8 +347,12 @@ public class CodeDisplayPanel extends VBox {
             lineBox.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
             StringBuilder style = new StringBuilder();
             if (lineViolations != null && !lineViolations.isEmpty()) {
-                CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
-                style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+                if (lineViolations.size() > 1) {
+                    style.append("-fx-background-color: #B388FF;"); // Purple for multiple violations
+                } else {
+                    CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                    style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+                }
             }
             if (highlightedLine == lineNumber) {
                 if (lineViolations == null || lineViolations.isEmpty()) {
@@ -583,8 +591,12 @@ public class CodeDisplayPanel extends VBox {
             lineBox.setStyle("-fx-wrap-text: false; -fx-background-color: transparent;");
             StringBuilder style = new StringBuilder();
             if (lineViolations != null && !lineViolations.isEmpty()) {
-                CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
-                style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+                if (lineViolations.size() > 1) {
+                    style.append("-fx-background-color: #B388FF;"); // Purple for multiple violations
+                } else {
+                    CodeAnalyzer.ViolationType mainType = getMostSevereViolation(lineViolations);
+                    style.append("-fx-background-color: ").append(getLineHighlightColor(mainType)).append(";");
+                }
             }
             if (highlightedLine == lineNumber) {
                 if (lineViolations == null || lineViolations.isEmpty()) {
@@ -652,7 +664,8 @@ public class CodeDisplayPanel extends VBox {
             CodeAnalyzer.ViolationType.IMPROPER_INDENTATION,
             CodeAnalyzer.ViolationType.REPEATED_STRING,
             CodeAnalyzer.ViolationType.EMPTY_LINE,
-            CodeAnalyzer.ViolationType.NAMING_CONVENTION
+            CodeAnalyzer.ViolationType.NAMING_CONVENTION,
+            CodeAnalyzer.ViolationType.PREMATURE_LINE_BREAK // Add premature line break to priority
         );
         for (CodeAnalyzer.ViolationType t : priority) {
             for (CodeAnalyzer.Violation v : violations) {
@@ -671,6 +684,7 @@ public class CodeDisplayPanel extends VBox {
             case REPEATED_STRING: return "#2979FF"; // Bold Blue
             case EMPTY_LINE: return "#FFD600"; // Bold Yellow
             case NAMING_CONVENTION: return "#00C853"; // Bold Green
+            case PREMATURE_LINE_BREAK: return "#00BCD4"; // Bold Cyan
             default: return "transparent";
         }
     }

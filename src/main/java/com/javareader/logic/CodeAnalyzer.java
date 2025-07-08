@@ -154,6 +154,10 @@ public class CodeAnalyzer {
     public HighlightUtil getHighlightUtil() {
         return highlightUtil;
     }
+
+    public RuleChecker getRuleChecker() {
+        return ruleChecker;
+    }
     
     /**
      * Analysis result containing all violations found
