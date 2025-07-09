@@ -15,6 +15,7 @@ public class HighlightUtil {
     public static final Color EMPTY_LINE_COLOR = Color.PURPLE;
     public static final Color NAMING_CONVENTION_COLOR = Color.GREEN;
     public static final Color PREMATURE_LINE_BREAK_COLOR = Color.CYAN;
+    public static final Color SHORT_LINE_AFTER_LONG_COLOR = Color.MAGENTA;
     
     /**
      * Gets the color for a specific violation type
@@ -33,6 +34,8 @@ public class HighlightUtil {
                 return NAMING_CONVENTION_COLOR;
             case PREMATURE_LINE_BREAK:
                 return PREMATURE_LINE_BREAK_COLOR;
+            case SHORT_LINE_AFTER_LONG:
+                return SHORT_LINE_AFTER_LONG_COLOR;
             default:
                 return Color.BLACK;
         }
@@ -76,6 +79,8 @@ public class HighlightUtil {
                 return "Green: Naming convention violation (should be camelCase)";
             case PREMATURE_LINE_BREAK:
                 return "Cyan: Premature line break (can be merged safely)";
+            case SHORT_LINE_AFTER_LONG:
+                return "Magenta: Short line (<15 chars) after a line <120 chars";
             default:
                 return "Unknown violation";
         }
@@ -98,6 +103,8 @@ public class HighlightUtil {
                 return "Naming convention";
             case PREMATURE_LINE_BREAK:
                 return "Premature break";
+            case SHORT_LINE_AFTER_LONG:
+                return "Short line after long";
             default:
                 return "Unknown violation";
         }

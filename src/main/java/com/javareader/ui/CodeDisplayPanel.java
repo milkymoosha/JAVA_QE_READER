@@ -685,6 +685,7 @@ public class CodeDisplayPanel extends VBox {
             case EMPTY_LINE: return "#FFD600"; // Bold Yellow
             case NAMING_CONVENTION: return "#00C853"; // Bold Green
             case PREMATURE_LINE_BREAK: return "#00BCD4"; // Bold Cyan
+            case SHORT_LINE_AFTER_LONG: return "#D500F9"; // Bold Magenta
             default: return "transparent";
         }
     }

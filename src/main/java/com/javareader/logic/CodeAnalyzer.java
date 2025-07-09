@@ -78,6 +78,10 @@ public class CodeAnalyzer {
             if (prematureMsg != null) {
                 violations.add(new Violation(ViolationType.PREMATURE_LINE_BREAK, lineNumber, prematureMsg));
             }
+            // Check for short line after long line
+            if (ruleChecker.checkShortLineAfterLong(lines, i)) {
+                violations.add(new Violation(ViolationType.SHORT_LINE_AFTER_LONG, i + 2, lines.get(i + 1)));
+            }
             i++;
         }
         
@@ -136,6 +140,10 @@ public class CodeAnalyzer {
             String prematureMsg = ruleChecker.checkPrematureLineBreak(lines, i);
             if (prematureMsg != null) {
                 violations.add(new Violation(ViolationType.PREMATURE_LINE_BREAK, lineNumber, prematureMsg));
+            }
+            // Check for short line after long line
+            if (ruleChecker.checkShortLineAfterLong(lines, i)) {
+                violations.add(new Violation(ViolationType.SHORT_LINE_AFTER_LONG, i + 2, lines.get(i + 1)));
             }
             i++;
         }
@@ -217,7 +225,8 @@ public class CodeAnalyzer {
         REPEATED_STRING("Repeated string literal"),
         EMPTY_LINE("Empty line"),
         NAMING_CONVENTION("Naming convention violation"),
-        PREMATURE_LINE_BREAK("Premature line break (can be merged safely)");
+        PREMATURE_LINE_BREAK("Premature line break (can be merged safely)"),
+        SHORT_LINE_AFTER_LONG("Short line (<15 chars) after a line <120 chars");
         
         private final String description;
         

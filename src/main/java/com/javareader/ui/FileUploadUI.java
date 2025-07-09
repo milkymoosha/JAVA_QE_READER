@@ -3,7 +3,6 @@ package com.javareader.ui;
 import com.javareader.logic.CodeAnalyzer;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
@@ -11,7 +10,6 @@ import javafx.stage.FileChooser;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -35,11 +33,8 @@ public class FileUploadUI extends VBox {
     private final VBox descriptionBox;
     private final Map<CodeAnalyzer.ViolationType, Integer> violationNavIndex = new HashMap<>();
     private List<CodeAnalyzer.Violation> lastViolations = null;
-    private boolean isScrapMode = false;
-    private boolean isScrapEditMode = false;
     private String lastScrapCode = "";
     private Button editScrapButton;
-    private Path virtualScrapPath = Paths.get("Scrap.java");
     private String scrapContent = "";
     private TextField filePathField;
     private Button openPathButton;
@@ -283,7 +278,6 @@ public class FileUploadUI extends VBox {
         return button;
     }
     private void enterScrapEditMode() {
-        isScrapEditMode = true;
         scrapButton.setVisible(false);
         analyzeScrapButton.setVisible(true);
         editScrapButton.setVisible(false);
@@ -485,6 +479,10 @@ public class FileUploadUI extends VBox {
                 box.getChildren().add(hBox);
             } else if (type == CodeAnalyzer.ViolationType.IMPROPER_INDENTATION) {
                 Label label = new Label("Orange: Improper indentation (more than 2 spaces) or line ends with '='");
+                label.setWrapText(true);
+                box.getChildren().add(label);
+            } else if (type == CodeAnalyzer.ViolationType.SHORT_LINE_AFTER_LONG) {
+                Label label = new Label("Magenta: Short line (<15 chars) after a line <120 chars");
                 label.setWrapText(true);
                 box.getChildren().add(label);
             } else {

@@ -343,4 +343,28 @@ public class RuleChecker {
         // Only flag if the whole logical unit fits
         return logicalUnit;
     }
+
+    /**
+     * Checks if a line is followed by a too-short line (new rule)
+     * If a line is less than maxLineLength, the next line should not be less than 15 characters
+     */
+    public boolean checkShortLineAfterLong(List<String> lines, int i) {
+        String line = lines.get(i);
+        if (line.length() >= maxLineLength) return false;
+        if (i + 1 >= lines.size()) return false;
+        String nextLine = lines.get(i + 1);
+        String nextTrimmed = nextLine.trim();
+        // Ignore empty or whitespace-only lines
+        if (nextTrimmed.isEmpty()) return false;
+        // Ignore comments and annotation lines
+        if (nextTrimmed.startsWith("@") || nextTrimmed.startsWith("//") || nextTrimmed.startsWith("/*") || nextTrimmed.startsWith("*")) return false;
+        // Ignore lines that are only '{' or '}'
+        if (nextTrimmed.equals("{") || nextTrimmed.equals("}")) return false;
+        // Ignore lines ending with ';', '{', or '}'
+        if (nextTrimmed.endsWith(";") || nextTrimmed.endsWith("{") || nextTrimmed.endsWith("}")) return false;
+        // Ignore lines containing 'else' (e.g., '}else{')
+        if (nextTrimmed.contains("else")) return false;
+        if (nextLine.length() < 15) return true;
+        return false;
+    }
 } 
